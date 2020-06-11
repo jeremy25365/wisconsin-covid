@@ -72,10 +72,12 @@
 						 'NEGATIVE': 'Total Negative Tests',
 						 'NEG_NEW': 'Negative Daily Tests'
 					 },
-					 gridDiv = document.getElementById('grid'),
 					 color = Chart.helpers.color;
-
-		   body.appendChild(gridDiv);
+			
+	    function setupGridCanvas(){
+			 var gridDiv = document.getElementById('grid');
+			 
+			 gridDiv.innerHTML = '';
 
 			for (var p = 0; p<properties.length; p++){
 				 var canvas = document.createElement('canvas'),
@@ -85,6 +87,7 @@
 				 divNode.appendChild(canvas);
 				 gridDiv.appendChild(divNode);
 			}
+		}
 			
 		function color(index) {
 			return COLORS[index % COLORS.length];
@@ -154,6 +157,9 @@
 			       selectCounty = county.options[county.selectedIndex].value,
 				   daysBack = document.getElementById("daysBack"),
 			       selectedDaysBack = daysBack.options[daysBack.selectedIndex].value;
+				   
+				   
+			  setupGridCanvas();	   
 
 			  var myHeaders = new Headers();
 			  myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
