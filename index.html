@@ -1,0 +1,196 @@
+<!doctype html>
+<html>
+
+<head>
+	<title>Wisconsin County Covid Data</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js"></script>
+	<style>
+		canvas {
+			-moz-user-select: none;
+			-webkit-user-select: none;
+			-ms-user-select: none;
+		}
+		
+		.grid-container {
+		  display: grid;
+		  grid-template-columns: repeat(3, 1fr);
+		}
+		
+	</style>
+</head>
+
+<body>
+
+<span>County</span>
+<select id="county" onchange="onCriteriaChange()">
+  <option value="BROWN">Brown</option>
+  <option value="CALUMET">Calumet</option>
+  <option value="OUTAGAMIE" selected>Outagamie</option>
+</select>
+<span>Since Days Ago </span>
+<select id="daysBack" onchange="onCriteriaChange()">
+  <option value="7">7</option>
+  <option value="14">14</option>
+  <option value="30" selected>30</option>
+  <option value="60">60</option>
+  <option value="90">90</option>
+</select>
+
+<div id="grid" class="grid-container"></div>
+
+	
+	<script>
+		var timeFormat = 'MM/DD/YYYY HH:mm',
+				properties = ['TEST_NEW', 'POS_NEW' , 'NEG_NEW', 'POSITIVE', 'NEGATIVE',  'DEATHS'],
+						body = document.body,					 
+					   chartColors = [
+							'rgb(255, 99, 132)',
+							'rgb(255, 159, 64)',
+							'rgb(255, 205, 86)',
+							'rgb(75, 192, 192)',
+							'rgb(54, 162, 235)',
+							'rgb(153, 102, 255)',
+							'rgb(201, 203, 207)'
+						],
+						COLORS = [
+							'#4dc9f6',
+							'#f67019',
+							'#f53794',
+							'#537bc4',
+							'#acc236',
+							'#166a8f',
+							'#00a950',
+							'#58595b',
+							'#8549ba'
+					 ],
+					 translations = {
+						 'TEST_NEW': 'New Daily Tests',
+						 'POS_NEW': 'Positive Daily Tests',
+						 'POSITIVE': 'Total Positive Tests',
+						 'DEATHS': 'Total Deaths',
+						 'NEGATIVE': 'Total Negative Tests',
+						 'NEG_NEW': 'Negative Daily Tests'
+					 },
+					 gridDiv = document.getElementById('grid'),
+					 color = Chart.helpers.color;
+
+		   body.appendChild(gridDiv);
+
+			for (var p = 0; p<properties.length; p++){
+				 var canvas = document.createElement('canvas'),
+						divNode = document.createElement('div');
+				 canvas.id = 'canvas' + p;
+
+				 divNode.appendChild(canvas);
+				 gridDiv.appendChild(divNode);
+			}
+			
+		function color(index) {
+			return COLORS[index % COLORS.length];
+		}
+
+	    function onCriteriaChange(){
+			   renderCharts();
+		 }
+
+		function getChartConfigForProperty(dataArray, property, chartIndex){
+
+				var covidLoadedDates = [],
+					  propertyData = [],
+					  lastRec,
+					  label = translations[property];
+			
+				for (var i = 0; i<dataArray.length; i++){
+					 var data = dataArray[i].attributes,
+							dataLoadedDate = new Date(data.LoadDttm);										
+					 covidLoadedDates.push(dataLoadedDate);
+					 propertyData.push(data[property]);
+					 if (i == dataArray.length - 1){
+						lastRec = data;
+					 }
+				}	
+				
+			   return {
+						type: 'line',
+						data: {
+							labels: covidLoadedDates,
+							datasets: [{
+								label: lastRec.NAME + ' COVID ' +  label,
+								backgroundColor: color(chartColors[chartIndex]).alpha(0.5).rgbString(),
+								borderColor: chartColors[chartIndex],
+								fill: false,
+								data: propertyData
+							}]
+						},
+						options: {							
+							scales: {
+								xAxes: [{
+									type: 'time',
+									time: {
+										parser: timeFormat,
+										tooltipFormat: 'll HH:mm'
+									},
+									scaleLabel: {
+										display: true,
+										labelString: 'Date'
+									}
+								}],
+								yAxes: [{
+									scaleLabel: {
+										display: true,
+										labelString: label
+									}
+								}]
+							},
+						}
+					};
+		}
+
+		function renderCharts(){
+		
+		
+			 var county = document.getElementById("county"),
+			       selectCounty = county.options[county.selectedIndex].value,
+				   daysBack = document.getElementById("daysBack"),
+			       selectedDaysBack = daysBack.options[daysBack.selectedIndex].value;
+
+			  var myHeaders = new Headers();
+			  myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+
+			  var urlencoded = new URLSearchParams();
+			  urlencoded.append('where', "NAME='" + selectCounty + "'");
+			  urlencoded.append('outFields', '*');
+			  urlencoded.append('f', 'json');
+			  urlencoded.append('outSR', '4326');
+
+			  var requestOptions = {
+				method: 'POST',
+				headers: myHeaders,
+				body: urlencoded,
+				redirect: 'follow'
+			  };
+
+			   fetch("https://services1.arcgis.com/ISZ89Z51ft1G16OK/ArcGIS/rest/services/COVID19_WI/FeatureServer/10/query", requestOptions)  
+					.then(response => response.json())
+					.then(result =>{
+						var lastDays = result.features.slice(-selectedDaysBack);
+
+					    for (var j=0; j<properties.length; j++){						
+
+							 var config = getChartConfigForProperty(lastDays, properties[j], j),
+									ctx = document.getElementById('canvas' + j).getContext('2d');
+								window.myLine = new Chart(ctx, config);
+							
+				   }})
+				   .catch(error => console.log('error', error));		
+		}
+
+		window.onload = function() {
+			renderCharts();
+		};
+
+	</script>
+</body>
+
+</html>
