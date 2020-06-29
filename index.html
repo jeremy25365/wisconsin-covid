@@ -55,7 +55,7 @@
 
 	<script>
 		var timeFormat = 'MM/DD/YYYY HH:mm',
-			properties = ['TEST_NEW', 'POS_NEW', 'NEG_NEW', 'POSITIVE', 'NEGATIVE', 'DEATHS', 'PERCENT_POS'],
+			properties = ['TEST_NEW', 'POS_NEW', 'NEG_NEW', 'POSITIVE', 'NEGATIVE', 'DEATHS', 'PERCENT_POS', 'SDAVG'],
 			body = document.body,
 			chartColors = [
 				'rgb(255, 99, 132)',
@@ -84,7 +84,8 @@
 				'DEATHS': 'Total Deaths',
 				'NEGATIVE': 'Total Negative Tests',
 				'NEG_NEW': 'Negative Daily Tests',
-				'PERCENT_POS': 'Percent Positive'
+				'PERCENT_POS': 'Percent Positive Percentage',
+				'SDAVG': '7 day Positive Percentage'
 			},
 			color = Chart.helpers.color;
 
@@ -119,16 +120,22 @@
 				label = translations[property];
 
 			for (var i = 0; i < dataArray.length; i++) {
-				var data = dataArray[i].attributes,
-					sevenDays = dataArray.slice(i, -1);
+				var data = dataArray[i].attributes,					
 					dataLoadedDate = new Date(data.LoadDttm);
 					
-				console.log(sevenDays);	
-					
-					
-					
-					
-				data['PERCENT_POS'] = Math.ceil((data['POS_NEW'] / 	data ['TEST_NEW'] ) * 100 );
+				data['PERCENT_POS'] = (data['POS_NEW'] / 	data ['TEST_NEW'] ) * 100;
+				
+				if (i >= 7){
+					sevenDayData = dataArray.slice(i - 6, i + 1);
+					var sevenDayTotalsPositives = sevenDayData.reduce(function(accumulator, currentVal, currentIndex, array){
+						var ddata = array[currentIndex].attributes;
+							 return {
+								totalPos:  ddata['POS_NEW'] + accumulator.totalPos,
+								totalTests: ddata ['TEST_NEW'] + accumulator.totalTests
+							 };							
+					}, {totalPos: 0, totalTests: 0});
+					data['SDAVG'] = (sevenDayTotalsPositives.totalPos / sevenDayTotalsPositives.totalTests) * 100;
+				}
 				
 					
 				covidLoadedDates.push(dataLoadedDate);
