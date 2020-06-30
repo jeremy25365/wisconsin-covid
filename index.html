@@ -20,7 +20,6 @@
 </head>
 
 <body>
-
 	<span>County</span>
 	<select id="county" onchange="onCriteriaChange()">
 		<option value="Adams">Adams</option>
@@ -85,7 +84,7 @@
 				'NEGATIVE': 'Total Negative Tests',
 				'NEG_NEW': 'Negative Daily Tests',
 				'PERCENT_POS': 'Positive Percentage',
-				'SDAVG': '7 day Positive Percentage'
+				'SDAVG': '7 Day Positive Percentage'
 			},
 			color = Chart.helpers.color;
 
@@ -112,36 +111,61 @@
 			renderCharts();
 		}
 
-		function getChartConfigForProperty(dataArray, property, chartIndex) {
+		function getChartConfigForProperty(allData, property, chartIndex, selectedDaysBack) {
 
 			var covidLoadedDates = [],
 				propertyData = [],
 				lastRec,
-				label = translations[property];
+				label = translations[property],
+				dataArray = allData.slice(-selectedDaysBack),
+				dataArray2 = allData.slice((-selectedDaysBack - 7)),
+				currentVal;
 
 			for (var i = 0; i < dataArray.length; i++) {
-				var data = dataArray[i].attributes,					
-					dataLoadedDate = new Date(data.LoadDttm);
-					
-				data['PERCENT_POS'] = (data['POS_NEW'] / 	data ['TEST_NEW'] ) * 100;
-				
-				if (i >= 7){
-					sevenDayData = dataArray.slice(i - 6, i + 1);
-					var sevenDayTotalsPositives = sevenDayData.reduce(function(accumulator, currentVal, currentIndex, array){
-						var ddata = array[currentIndex].attributes;
-							 return {
-								totalPos:  ddata['POS_NEW'] + accumulator.totalPos,
-								totalTests: ddata ['TEST_NEW'] + accumulator.totalTests
-							 };							
-					}, {totalPos: 0, totalTests: 0});
-					data['SDAVG'] = (sevenDayTotalsPositives.totalPos / sevenDayTotalsPositives.totalTests) * 100;
+				var data = dataArray[i].attributes,
+					dataLoadedDate = new Date(data.LoadDttm),
+					dailyPercentPos = (data['POS_NEW'] / data['TEST_NEW']) * 100;
+
+				if (Math.floor(dailyPercentPos) != dailyPercentPos) {
+					dailyPercentPos = dailyPercentPos.toFixed(1);
 				}
-				
-					
+
+				data['PERCENT_POS'] = dailyPercentPos;
+				var sevenDayData = dataArray2.slice(i + 1, i + 8);
+
+				var sevenDayTotalsPositives = sevenDayData.reduce(function (accumulator, currentVal, currentIndex, array) {
+					var ddata = currentVal.attributes,
+						ret = {
+							totalPos: ddata['POS_NEW'] + accumulator.totalPos,
+							totalTests: ddata['TEST_NEW'] + accumulator.totalTests
+						};
+					if (i == 3) {
+						console.log(ddata['POS_NEW']);
+						console.log(ddata['TEST_NEW']);
+						console.log(new Date(ddata.LoadDttm));
+						console.log(dataLoadedDate);
+						console.log(ret);
+					}
+					return ret;
+				}, { totalPos: 0, totalTests: 0 });
+
+				var sdavg = (sevenDayTotalsPositives.totalPos / sevenDayTotalsPositives.totalTests) * 100;
+
+				if (Math.floor(sdavg) != sdavg) {
+					sdavg = sdavg.toFixed(1);
+				}
+				data['SDAVG'] = sdavg;
+
 				covidLoadedDates.push(dataLoadedDate);
 				propertyData.push(data[property]);
 				if (i == dataArray.length - 1) {
 					lastRec = data;
+					currentVal = lastRec[property];
+					if (Math.floor(currentVal) != currentVal) {
+						if (label.indexOf('Percentage') > -1) {
+							currentVal = currentVal + '%';
+						}
+					}
 				}
 			}
 
@@ -151,8 +175,8 @@
 					labels: covidLoadedDates,
 					datasets: [{
 						label: lastRec.NAME + ' COVID ' + label,
-						backgroundColor: color(chartColors[chartIndex]).alpha(0.5).rgbString(),
-						borderColor: chartColors[chartIndex],
+						backgroundColor: color(chartColors[chartIndex % 7]).alpha(0.5).rgbString(),
+						borderColor: chartColors[chartIndex % 7],
 						fill: false,
 						data: propertyData
 					}]
@@ -167,7 +191,7 @@
 							},
 							scaleLabel: {
 								display: true,
-								labelString: 'Date'
+								labelString: 'Date' + ' / Current:  ' + currentVal
 							}
 						}],
 						yAxes: [{
@@ -182,7 +206,6 @@
 		}
 
 		function renderCharts() {
-
 
 			var county = document.getElementById("county"),
 				selectCounty = county.options[county.selectedIndex].value,
@@ -211,11 +234,11 @@
 			fetch("https://services1.arcgis.com/ISZ89Z51ft1G16OK/ArcGIS/rest/services/COVID19_WI/FeatureServer/10/query", requestOptions)
 				.then(response => response.json())
 				.then(result => {
-					var lastDays = result.features.slice(-selectedDaysBack);
 
+					var allData = result.features;
 					for (var j = 0; j < properties.length; j++) {
 
-						var config = getChartConfigForProperty(lastDays, properties[j], j),
+						var config = getChartConfigForProperty(allData, properties[j], j, selectedDaysBack),
 							ctx = document.getElementById('canvas' + j).getContext('2d');
 						window.myLine = new Chart(ctx, config);
 
