@@ -140,13 +140,6 @@
 							totalPos: ddata['POS_NEW'] + accumulator.totalPos,
 							totalTests: ddata['TEST_NEW'] + accumulator.totalTests
 						};
-					if (i == 3) {
-						console.log(ddata['POS_NEW']);
-						console.log(ddata['TEST_NEW']);
-						console.log(new Date(ddata.LoadDttm));
-						console.log(dataLoadedDate);
-						console.log(ret);
-					}
 					return ret;
 				}, { totalPos: 0, totalTests: 0 });
 
@@ -237,6 +230,11 @@
 				.then(result => {
 
 					var allData = result.features;
+					allData.sort(function(a, b){
+						var t1 = a.attributes.LoadDttm,
+							t2 = b.attributes.LoadDttm;
+						return t1 - t2;
+					})
 					for (var j = 0; j < properties.length; j++) {
 
 						var config = getChartConfigForProperty(allData, properties[j], j, selectedDaysBack),
