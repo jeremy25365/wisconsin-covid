@@ -124,7 +124,7 @@
 
 			for (var i = 0; i < dataArray.length; i++) {
 				var data = dataArray[i].attributes,
-					dataLoadedDate = new Date(data.LoadDttm),
+					dataLoadedDate = new Date(data.DATE),
 					dailyPercentPos = (data['POS_NEW'] / data['TEST_NEW']) * 100;
 
 				if (Math.floor(dailyPercentPos) != dailyPercentPos) {
@@ -231,8 +231,8 @@
 
 					var allData = result.features;
 					allData.sort(function(a, b){
-						var t1 = a.attributes.LoadDttm,
-							t2 = b.attributes.LoadDttm;
+						var t1 = a.attributes.DATE,
+							t2 = b.attributes.DATE;
 						return t1 - t2;
 					})
 					for (var j = 0; j < properties.length; j++) {
