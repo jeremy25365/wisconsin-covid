@@ -56,7 +56,7 @@
 
 	<script>
 		var timeFormat = 'MM/DD/YYYY HH:mm',
-			properties = ['TEST_NEW', 'POS_NEW', 'NEG_NEW', 'POSITIVE', 'NEGATIVE', 'DEATHS', 'PERCENT_POS', 'SDAVG'],
+			properties = ['TEST_NEW', 'POS_NEW', 'NEG_NEW', 'POSITIVE', 'NEGATIVE', 'DEATHS', 'PERCENT_POS', 'SDAVG', 'SDAVG7'],
 			body = document.body,
 			chartColors = [
 				'rgb(255, 99, 132)',
@@ -86,7 +86,8 @@
 				'NEGATIVE': 'Total Negative Tests',
 				'NEG_NEW': 'Negative Daily Tests',
 				'PERCENT_POS': 'Positive Percentage',
-				'SDAVG': '7 Day Positive Percentage'
+				'SDAVG': '7 Day Positive Percentage',
+				'SDAVG7': '7 Day Positive Avg',
 			},
 			color = Chart.helpers.color;
 
@@ -145,11 +146,17 @@
 				}, { totalPos: 0, totalTests: 0 });
 
 				var sdavg = (sevenDayTotalsPositives.totalPos / sevenDayTotalsPositives.totalTests) * 100;
+				
+				var sdposavg = sevenDayTotalsPositives.totalPos / 7;
 
 				if (Math.floor(sdavg) != sdavg) {
 					sdavg = sdavg.toFixed(1);
 				}
+				if (Math.floor(sdposavg) != sdposavg) {
+					sdposavg = sdposavg.toFixed(1);
+				}
 				data['SDAVG'] = sdavg;
+				data['SDAVG7'] = sdposavg;
 
 				covidLoadedDates.push(dataLoadedDate);
 				propertyData.push(data[property]);
@@ -235,7 +242,9 @@
 						var t1 = a.attributes.DATE,
 							t2 = b.attributes.DATE;
 						return t1 - t2;
-					})
+					});
+					
+					console.log(allData);
 					for (var j = 0; j < properties.length; j++) {
 
 						var config = getChartConfigForProperty(allData, properties[j], j, selectedDaysBack),
